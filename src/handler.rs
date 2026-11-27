@@ -95,6 +95,9 @@ pub(crate) struct HashChecker {
     pub(crate) expected: String,
     /// The algorithm a folder is hashed with; `None` is the usual one.
     pub(crate) algorithm: Option<Algorithm>,
+    /// The one algorithm a file or a text is hashed with; `None` is all of
+    /// them, which is what the form opens on.
+    pub(crate) only: Option<Algorithm>,
     /// A file or a text, hashed — or a folder. Never both.
     pub(crate) shown: Option<Shown>,
     pub(crate) folder: Option<ShownFolder>,
@@ -121,6 +124,15 @@ impl HashChecker {
         // The dropdown sends back the label it showed.
         if let Some(algorithm) = field("algorithm").and_then(Algorithm::parse) {
             self.algorithm = Some(algorithm);
+        }
+        // "All algorithms" — in whichever language it was shown — or one by
+        // its name. Anything else leaves the choice as it was.
+        if let Some(answer) = field("only") {
+            if ["en", "uk"].iter().any(|lang| catalog().tr(lang, "ui.all") == answer.trim()) {
+                self.only = None;
+            } else if let Some(algorithm) = Algorithm::parse(answer) {
+                self.only = Some(algorithm);
+            }
         }
     }
 
@@ -157,24 +169,44 @@ impl HashChecker {
             }
         }
 
+        // What to run: everything, or the one that was chosen — and, with it,
+        // whatever a hash given to compare with could be. It was typed in to
+        // be checked, and "does not match" would be a poor answer to a SHA-1
+        // held against the MD5 that happened to be selected.
+        let expected = (!self.expected.is_empty()).then(|| expected_hash(&self.expected));
+        let shown: Vec<Algorithm> = match self.only {
+            Some(one) => vec![one],
+            None => Algorithm::ALL.to_vec(),
+        };
+        let mut run = shown.clone();
+        if let Some(Some((could_be, _))) = &expected {
+            run.extend(could_be);
+        }
+
         let (name, digests) = if self.kind == Kind::File {
-            match digest_file(&self.path, &Algorithm::ALL) {
+            match digest_file(&self.path, &run) {
                 Ok(d) => (file_name(&self.path), d),
                 Err(e) => return notice(self.view(lang), "error", e),
             }
         } else if !self.text.is_empty() {
-            (String::new(), digest_bytes(self.text.as_bytes(), &Algorithm::ALL))
+            (String::new(), digest_bytes(self.text.as_bytes(), &run))
         } else {
             return notice(self.view(lang), "warning", t("ui.nothing"));
         };
 
-        let verdict = (!self.expected.is_empty()).then(|| match expected_hash(&self.expected) {
+        let verdict = expected.map(|read| match read {
             Some((could_be, hash)) => match which_matches(&digests, &could_be, &hash) {
                 Some(algorithm) => Verdict::Matches(algorithm),
                 None => Verdict::Differs(could_be),
             },
             None => Verdict::NotAHash,
         });
+        // The table is of what was asked for; what was run only to compare
+        // with has said what it had to say in the verdict.
+        let digests = Digests {
+            size: digests.size,
+            hashes: digests.hashes.into_iter().filter(|(a, _)| shown.contains(a)).collect(),
+        };
         self.shown = Some(Shown { name, digests, verdict });
         self.view(lang)
     }

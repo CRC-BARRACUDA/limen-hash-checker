@@ -134,6 +134,19 @@ pub(crate) fn size_text(bytes: u64, lang: &str) -> String {
 }
 
 impl HashChecker {
+    /// Which hashes a file or a text gets: all of them, or one. All is first
+    /// and is what the form opens on — one is for a file large enough that
+    /// twenty-six digests of it are a wait for twenty-five nobody asked for.
+    fn algorithm_choice(&self, lang: &str) -> limen_sdk_rust::ui::Widget {
+        let t = |k: &str| catalog().tr(lang, k);
+        let mut options = vec![t("ui.all")];
+        options.extend(Algorithm::ALL.iter().map(|a| a.label().to_string()));
+        select("only", options).label(t("ui.algorithm")).default(match self.only {
+            Some(one) => one.label().to_string(),
+            None => t("ui.all"),
+        })
+    }
+
     pub(crate) fn view(&self, lang: &str) -> Value {
         let t = |k: &str| catalog().tr(lang, k);
         let mut widgets = vec![
@@ -147,9 +160,10 @@ impl HashChecker {
                 .on_change(CAP, "kind"),
         ];
         match self.kind {
-            Kind::File => widgets.push(
-                file("path").label(t("ui.file")).browse(t("ui.browse")).default(self.path.clone()),
-            ),
+            Kind::File => {
+                widgets.push(file("path").label(t("ui.file")).browse(t("ui.browse")).default(self.path.clone()));
+                widgets.push(self.algorithm_choice(lang));
+            }
             Kind::Folder => {
                 widgets.push(
                     file("path")
@@ -165,9 +179,12 @@ impl HashChecker {
                         .default(self.algorithm.unwrap_or(Algorithm::USUAL).label()),
                 );
             }
-            Kind::Text => widgets.push(
-                text("text").label(t("ui.text")).placeholder(t("ui.text_hint")).default(self.text.clone()),
-            ),
+            Kind::Text => {
+                widgets.push(
+                    text("text").label(t("ui.text")).placeholder(t("ui.text_hint")).default(self.text.clone()),
+                );
+                widgets.push(self.algorithm_choice(lang));
+            }
         }
         widgets.push(
             text("expected")

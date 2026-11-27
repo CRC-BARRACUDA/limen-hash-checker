@@ -86,7 +86,7 @@ fn the_form_shows_the_one_field_of_the_kind_chosen() {
         // It opens asking for a file.
         let mut m = HashChecker::default();
         let v = m.view(lang);
-        assert_eq!(ids(&v), ["kind", "path", "expected"], "{lang}");
+        assert_eq!(ids(&v), ["kind", "path", "only", "expected"], "{lang}");
         let kind = &v["widgets"][2];
         assert_eq!(kind["options"], json!([t("kind.file"), t("kind.folder"), t("kind.text")]));
         assert_eq!(kind["default"], t("kind.file").as_str());
@@ -101,7 +101,7 @@ fn the_form_shows_the_one_field_of_the_kind_chosen() {
 
         let v = m.choose_kind(&json!({ "kind": t("kind.text") }), lang);
         assert_eq!(m.kind, Kind::Text, "{lang}");
-        assert_eq!(ids(&v), ["kind", "text", "expected"], "{lang}");
+        assert_eq!(ids(&v), ["kind", "text", "only", "expected"], "{lang}");
     }
 }
 
@@ -260,4 +260,65 @@ fn a_file_name_is_the_last_part_of_either_kind_of_path() {
     assert_eq!(file_name(r"C:\Users\Anna\setup.exe"), "setup.exe");
     assert_eq!(file_name("setup.exe"), "setup.exe");
     assert_eq!(file_name("/var/log/"), "log");
+}
+
+/// All of the hashes, or the one that was asked for: a dropdown that opens on
+/// "all", and a table of exactly what it says.
+#[test]
+fn one_algorithm_can_be_chosen_in_place_of_all() {
+    let choice = |v: &Value| v["widgets"].as_array().unwrap().iter().find(|w| w["id"] == "only").unwrap().clone();
+    for lang in ["en", "uk"] {
+        let all = catalog().tr(lang, "ui.all");
+        let mut m = HashChecker::default();
+        let v = m.calculate(&json!({ "kind": "Text", "text": "abc" }), lang);
+        // It opens on all, and all is the first choice.
+        assert_eq!(choice(&v)["default"], all.as_str(), "{lang}");
+        assert_eq!(choice(&v)["options"][0], all.as_str(), "{lang}");
+        assert_eq!(choice(&v)["options"].as_array().unwrap().len(), Algorithm::ALL.len() + 1);
+        assert_eq!(hashes_on(&v).len(), Algorithm::ALL.len());
+
+        // One: the dropdown sends back the label it showed.
+        let v = m.calculate(&json!({ "kind": "Text", "text": "abc", "only": "SHA-256" }), lang);
+        assert_eq!(hashes_on(&v), [("SHA-256".to_string(), abc(Algorithm::Sha256).to_string())], "{lang}");
+        assert_eq!(choice(&v)["default"], "SHA-256", "{lang}: the choice stays chosen");
+        // And it stays chosen for the next one.
+        let v = m.calculate(&json!({ "kind": "Text", "text": "abc" }), lang);
+        assert_eq!(hashes_on(&v).len(), 1, "{lang}");
+
+        // Back to all, by the words the dropdown shows in this language.
+        let v = m.calculate(&json!({ "kind": "Text", "text": "abc", "only": all }), lang);
+        assert_eq!(hashes_on(&v).len(), Algorithm::ALL.len(), "{lang}");
+        assert_eq!(m.only, None);
+    }
+    // A file too, and Ukraine's own by its name.
+    let file = Scratch::with("view-only", b"abc");
+    let mut m = HashChecker::default();
+    let v = m.calculate(&json!({ "kind": "File", "path": file.path(), "only": "Kupyna-256" }), "en");
+    assert_eq!(hashes_on(&v), [("Kupyna-256".to_string(), abc(Algorithm::Kupyna256).to_string())]);
+    // Something that is not an algorithm changes nothing.
+    m.calculate(&json!({ "kind": "File", "path": file.path(), "only": "Tiger" }), "en");
+    assert_eq!(m.only, Some(Algorithm::Kupyna256));
+    // A folder has its own dropdown, with no "all" in it.
+    let v = m.choose_kind(&json!({ "kind": "Folder" }), "en");
+    assert!(v["widgets"].as_array().unwrap().iter().all(|w| w["id"] != "only"));
+}
+
+/// A hash given to compare with is checked whichever algorithm is selected:
+/// a SHA-1 held against "MD5 only" is still found to be the file's SHA-1 — and
+/// the table still shows only what was asked for.
+#[test]
+fn a_given_hash_is_checked_whatever_algorithm_is_selected() {
+    let mut m = HashChecker::default();
+    let v = m.calculate(&json!({ "kind": "Text", "text": "abc", "only": "MD5", "expected": abc(Algorithm::Sha1) }), "en");
+    assert_eq!(m.shown.as_ref().unwrap().verdict, Some(Verdict::Matches(Algorithm::Sha1)));
+    assert_eq!(hashes_on(&v), [("MD5".to_string(), abc(Algorithm::Md5).to_string())]);
+
+    // One that is nobody's is still said to be nobody's, of its own kind.
+    m.calculate(&json!({ "kind": "Text", "text": "abc", "only": "MD5", "expected": "0".repeat(40) }), "en");
+    assert_eq!(
+        m.shown.as_ref().unwrap().verdict,
+        Some(Verdict::Differs(vec![Algorithm::Sha1, Algorithm::Ripemd160]))
+    );
+    // A row that is not shown cannot be copied.
+    assert_eq!(m.copy(&json!({ "id": "sha1" }), "en")["notice"]["level"], "error");
 }

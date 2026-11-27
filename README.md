@@ -74,6 +74,12 @@ UTF-8, with nothing added at the end.
 A folder given where a file was asked for is hashed as the folder it is, and the
 other way round: the form follows the path.
 
+For a file or a text, **Algorithm** says which hashes to calculate: **All
+algorithms**, which is what it opens on, or one of them. One is for a file large
+enough that twenty-six digests of it are a wait for twenty-five nobody asked
+for. A hash given to compare with is checked either way: it is held against the
+algorithms it could be, whichever is selected.
+
 Each hash can be copied: double-click its row, or right-click it.
 
 ### A folder
