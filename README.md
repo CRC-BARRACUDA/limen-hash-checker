@@ -35,9 +35,27 @@ Everything below, in one pass over the data — a large file is read once.
 | BLAKE2b | 128 | BLAKE2b-512 |
 | BLAKE3 | 64 | BLAKE3, 256-bit output |
 | Whirlpool | 128 | Sound and rare |
+| Kupyna-256 | 64 | Ukraine's national hash — DSTU 7564:2014 |
+| Kupyna-384 | 96 | DSTU 7564:2014 |
+| Kupyna-512 | 128 | DSTU 7564:2014 |
+| GOST 34.311-95 | 64 | Ukraine's earlier standard (DSTU GOST 34.311-95) |
 
 **SHA-2 is a family, not one algorithm**: the six rows marked SHA-2 are all of
 it. "SHA-256" and "SHA2-256" are two names for the same thing.
+
+### Ukraine's hash functions
+
+* **Kupyna** («Купина», DSTU 7564:2014) is the current national standard, in
+  three sizes. It is what Ukrainian qualified electronic signatures made under
+  the newer standards hash with.
+* **GOST 34.311-95** (DSTU GOST 34.311-95) is the one it replaced, and is still
+  met in documents signed under the older standard — DSTU 4145 signatures most
+  of all. It is calculated with the substitution table the Ukrainian standard
+  names; the same function with another table (Russia's GOST R 34.11-94 uses
+  others) gives a different hash, and is not offered here.
+
+They are named as `kupyna256`, `kupyna384`, `kupyna512` and `gost34311_95`, and
+also by their standards: `DSTU 7564`, `dstu7564-512`, `ДСТУ ГОСТ 34.311-95`.
 
 They are not interchangeable:
 
@@ -45,7 +63,7 @@ They are not interchangeable:
   means to deceive: making another file with the same checksum is easy.
 * **MD5** and **SHA-1** are for comparing with a published value, not for
   trusting: both can be made to collide on purpose.
-* **SHA-2, SHA-3, BLAKE2 and BLAKE3** are the ones to rely on.
+* **SHA-2, SHA-3, BLAKE2, BLAKE3 and Kupyna** are the ones to rely on.
 
 ## On the screen
 
@@ -106,7 +124,7 @@ It is read in whatever shape it came:
 * as a whole line of a checksum file — the hash, then the file's name.
 
 With a name in front, it is held against that algorithm alone. Without one the
-length is all there is to go by, and most lengths are shared (five algorithms
+length is all there is to go by, and most lengths are shared (seven algorithms
 give 64 digits), so it is held against each and matches if it is any one's.
 Something that is not a hash at all is said to be that, not to "not match".
 
@@ -134,7 +152,8 @@ verify      {"expected", "path"|"text"|"data"}
 The names are `adler32`, `crc32`, `crc64`, `xxh64`, `xxh3`, `md5`, `sha1`,
 `ripemd160`, `sha224`, `sha256`, `sha384`, `sha512`, `sha512_224`,
 `sha512_256`, `sha3_224`, `sha3_256`, `sha3_384`, `sha3_512`, `blake2s`,
-`blake2b`, `blake3` and `whirlpool`; they are also accepted as people write
+`blake2b`, `blake3`, `whirlpool`, `kupyna256`, `kupyna384`, `kupyna512` and
+`gost34311_95`; they are also accepted as people write
 them (`SHA-256`, `SHA2-256`, `sha3-256`, `SHA-512/256`). A name that is not one of them is an error, not a
 quiet "all of them".
 
@@ -149,8 +168,8 @@ when anything in it could not be read.
 `actual` carries the hashes it was compared with, so a "no" can be shown rather
 than only reported.
 
-A caller that wants one hash of a large file should name it: twenty-two
-digests of a disk image take twenty-two times the arithmetic.
+A caller that wants one hash of a large file should name it: twenty-six
+digests of a disk image take twenty-six times the arithmetic.
 
 ## It needs very little
 

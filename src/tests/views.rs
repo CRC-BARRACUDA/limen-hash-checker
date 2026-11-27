@@ -182,7 +182,7 @@ fn a_given_hash_is_said_to_match_or_not() {
         let no = m.calculate(&json!({ "kind": "Text", "text": "abc", "expected": "0".repeat(64) }), lang);
         let step = no["widgets"].as_array().unwrap().iter().find(|w| w["kind"] == "step").unwrap().clone();
         assert!(
-            step["label"].as_str().unwrap().contains("SHA-256, SHA-512/256, SHA3-256, BLAKE2s, BLAKE3"),
+            step["label"].as_str().unwrap().contains("SHA-256, SHA-512/256, SHA3-256, BLAKE2s, BLAKE3, Kupyna-256, GOST 34.311-95"),
             "{lang}: {step}"
         );
 

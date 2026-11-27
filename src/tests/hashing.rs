@@ -49,6 +49,45 @@ fn crc64_is_the_one_xz_uses() {
     assert_eq!(d.of(Algorithm::Adler32), Some("091e01de"));
 }
 
+/// Kupyna is DSTU 7564:2014, and these are the values its authors published:
+/// of nothing, and of the 64 bytes 00 to 3F. GOST 34.311-95 is checked with
+/// the substitution table Ukraine's standard names — with any other table it
+/// is a different function with the same name.
+#[test]
+fn the_ukrainian_hashes_are_the_ones_their_standards_define() {
+    let ua = [Algorithm::Kupyna256, Algorithm::Kupyna384, Algorithm::Kupyna512, Algorithm::Gost34311];
+    let empty = digest_bytes(b"", &ua);
+    assert_eq!(empty.of(Algorithm::Kupyna256), Some("cd5101d1ccdf0d1d1f4ada56e888cd724ca1a0838a3521e7131d4fb78d0f5eb6"));
+    assert_eq!(
+        empty.of(Algorithm::Kupyna512),
+        Some(
+            "656b2f4cd71462388b64a37043ea55dbe445d452aecd46c3298343314ef04019\
+             bcfa3f04265a9857f91be91fce197096187ceda78c9c1c021c294a0689198538"
+        )
+    );
+
+    let bytes: Vec<u8> = (0u8..64).collect();
+    let d = digest_bytes(&bytes, &ua);
+    assert_eq!(d.of(Algorithm::Kupyna256), Some("08f4ee6f1be6903b324c4e27990cb24ef69dd58dbe84813ee0a52f6631239875"));
+    assert_eq!(
+        d.of(Algorithm::Kupyna384),
+        Some("c80a2dfb3afdfb02f46992b5edbe536b3560dd1d7e29c6f53978af58b444e37ba685c0dd910533ba5d78efffc13de62a")
+    );
+    assert_eq!(
+        d.of(Algorithm::Kupyna512),
+        Some(
+            "3813e2109118cdfb5a6d5e72f7208dccc80a2dfb3afdfb02f46992b5edbe536b\
+             3560dd1d7e29c6f53978af58b444e37ba685c0dd910533ba5d78efffc13de62a"
+        )
+    );
+
+    // GOST 34.311-95 of "test", as the Ukrainian implementations give it.
+    assert_eq!(
+        digest_bytes(b"test", &ua).of(Algorithm::Gost34311),
+        Some("7c536414f8b5b9cc649fdf3cccb2685c1a12622956308e34f31c50ed7b3af56c")
+    );
+}
+
 /// A reader that hands out a few bytes at a time, as a pipe or a slow disk
 /// does: the hash must not depend on where the blocks happen to end.
 struct Dribble<'a>(&'a [u8], usize);
@@ -159,6 +198,14 @@ fn an_algorithm_is_known_however_its_name_is_written() {
     assert_eq!(Algorithm::parse("xxhash64"), Some(Algorithm::Xxh64));
     assert_eq!(Algorithm::parse("CRC-64/XZ"), Some(Algorithm::Crc64));
     assert_eq!(Algorithm::parse("adler-32"), Some(Algorithm::Adler32));
+    // Ukraine's, by the function's name or the standard's number.
+    assert_eq!(Algorithm::parse("Kupyna-256"), Some(Algorithm::Kupyna256));
+    assert_eq!(Algorithm::parse("DSTU 7564:2014"), Some(Algorithm::Kupyna256));
+    assert_eq!(Algorithm::parse("dstu7564-512"), Some(Algorithm::Kupyna512));
+    assert_eq!(Algorithm::parse("kupyna384"), Some(Algorithm::Kupyna384));
+    assert_eq!(Algorithm::parse("GOST 34.311-95"), Some(Algorithm::Gost34311));
+    assert_eq!(Algorithm::parse("ДСТУ ГОСТ 34.311-95"), Some(Algorithm::Gost34311), "the standard's own name, in its own alphabet");
+    assert_eq!(Algorithm::parse("gost34311"), Some(Algorithm::Gost34311));
     assert_eq!(Algorithm::parse("BLAKE3"), Some(Algorithm::Blake3));
     assert_eq!(Algorithm::parse("CRC-32"), Some(Algorithm::Crc32));
     // Every algorithm answers to its own key and to its own label.
@@ -191,10 +238,18 @@ fn a_given_hash_is_read_in_whatever_shape_it_came() {
     ] {
         let (could_be, hash) = expected_hash(&given).unwrap_or_else(|| panic!("{given:?}"));
         assert_eq!(hash, sha256, "{given:?}");
-        // With no name on it, a 64-digit hash is any of the five that long.
+        // With no name on it, a 64-digit hash is any of the seven that long.
         assert_eq!(
             could_be,
-            [Algorithm::Sha256, Algorithm::Sha512_256, Algorithm::Sha3_256, Algorithm::Blake2s, Algorithm::Blake3],
+            [
+                Algorithm::Sha256,
+                Algorithm::Sha512_256,
+                Algorithm::Sha3_256,
+                Algorithm::Blake2s,
+                Algorithm::Blake3,
+                Algorithm::Kupyna256,
+                Algorithm::Gost34311,
+            ],
             "{given:?}"
         );
     }
@@ -277,4 +332,5 @@ fn show_a_file() {
         println!("{} {hash}", algorithm.key());
     }
 }
+
 

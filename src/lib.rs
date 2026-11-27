@@ -5,10 +5,14 @@
 //! on this machine and stays on it: nothing is looked up anywhere, because what
 //! a hash *means* — known-good, known-bad — is another module's question.
 //!
-//! Twenty-two digests, in one pass over the data — checksums (Adler-32, CRC-32,
+//! Twenty-six digests, in one pass over the data — checksums (Adler-32, CRC-32,
 //! CRC-64, XXH64, XXH3), the ones only for comparing with what others still
 //! publish (MD5, SHA-1), and the ones to rely on (SHA-2, SHA-3, BLAKE2, BLAKE3;
 //! RIPEMD-160 and Whirlpool for the tools that print them).
+//!
+//! Ukraine's national hash functions are among them: Kupyna (DSTU 7564:2014)
+//! in its three sizes, and GOST 34.311-95 with the substitution table the
+//! Ukrainian standard names.
 //!
 //! A folder is hashed too: every file in it, and one hash for the whole —
 //! see [`folder`].

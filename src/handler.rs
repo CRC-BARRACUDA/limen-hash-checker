@@ -180,7 +180,7 @@ impl HashChecker {
     }
 
     /// Hash the folder the form names: every file in it, with the one
-    /// algorithm chosen — twenty-two digests of every file of a folder is
+    /// algorithm chosen — twenty-six digests of every file of a folder is
     /// twenty times the wait for hashes nobody will read.
     fn calculate_folder(&mut self, lang: &str) -> Value {
         let algorithm = self.algorithm.unwrap_or(Algorithm::USUAL);

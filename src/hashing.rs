@@ -6,6 +6,7 @@ use std::io::Read;
 use std::path::Path;
 
 use blake2::{Blake2b512, Blake2s256};
+use gost94::Gost94UA;
 use md5::Md5;
 use ripemd::Ripemd160;
 use sha1::Sha1;
@@ -34,6 +35,9 @@ static CRC64: crc::Crc<u64> = crc::Crc::<u64>::new(&crc::CRC_64_XZ);
 ///   both can be made to collide on purpose.
 /// - **RIPEMD-160** and **Whirlpool** are sound and rare; here for the tool
 ///   that prints them.
+/// - **Kupyna** (DSTU 7564:2014) is Ukraine's national hash function, in three
+///   sizes, and sound. **GOST 34.311-95** is the one it replaced: still met in
+///   documents signed under the older standard, and here to check those.
 /// - **SHA-2** (224, 256, 384, 512, 512/224, 512/256), **SHA-3**, **BLAKE2** and
 ///   **BLAKE3** are the ones to rely on. SHA-256 is the one most often asked
 ///   for.
@@ -62,12 +66,16 @@ pub(crate) enum Algorithm {
     Blake2b,
     Blake3,
     Whirlpool,
+    Kupyna256,
+    Kupyna384,
+    Kupyna512,
+    Gost34311,
 }
 
 impl Algorithm {
     /// Every digest, in the order they are listed: the checksums, the ones that
     /// are only for comparing, then the families that can be relied on.
-    pub(crate) const ALL: [Algorithm; 22] = [
+    pub(crate) const ALL: [Algorithm; 26] = [
         Algorithm::Adler32,
         Algorithm::Crc32,
         Algorithm::Crc64,
@@ -90,6 +98,10 @@ impl Algorithm {
         Algorithm::Blake2b,
         Algorithm::Blake3,
         Algorithm::Whirlpool,
+        Algorithm::Kupyna256,
+        Algorithm::Kupyna384,
+        Algorithm::Kupyna512,
+        Algorithm::Gost34311,
     ];
 
     /// The one a folder is hashed with unless another is chosen, and the one
@@ -121,6 +133,10 @@ impl Algorithm {
             Algorithm::Blake2b => "blake2b",
             Algorithm::Blake3 => "blake3",
             Algorithm::Whirlpool => "whirlpool",
+            Algorithm::Kupyna256 => "kupyna256",
+            Algorithm::Kupyna384 => "kupyna384",
+            Algorithm::Kupyna512 => "kupyna512",
+            Algorithm::Gost34311 => "gost34311_95",
         }
     }
 
@@ -149,6 +165,10 @@ impl Algorithm {
             Algorithm::Blake2b => "BLAKE2b",
             Algorithm::Blake3 => "BLAKE3",
             Algorithm::Whirlpool => "Whirlpool",
+            Algorithm::Kupyna256 => "Kupyna-256",
+            Algorithm::Kupyna384 => "Kupyna-384",
+            Algorithm::Kupyna512 => "Kupyna-512",
+            Algorithm::Gost34311 => "GOST 34.311-95",
         }
     }
 
@@ -162,9 +182,13 @@ impl Algorithm {
             Algorithm::Md5 => 32,
             Algorithm::Sha1 | Algorithm::Ripemd160 => 40,
             Algorithm::Sha224 | Algorithm::Sha512_224 | Algorithm::Sha3_224 => 56,
-            Algorithm::Sha256 | Algorithm::Sha512_256 | Algorithm::Sha3_256 | Algorithm::Blake2s | Algorithm::Blake3 => 64,
-            Algorithm::Sha384 | Algorithm::Sha3_384 => 96,
-            Algorithm::Sha512 | Algorithm::Sha3_512 | Algorithm::Blake2b | Algorithm::Whirlpool => 128,
+            Algorithm::Sha256 | Algorithm::Sha512_256 | Algorithm::Sha3_256 | Algorithm::Blake2s | Algorithm::Blake3
+            | Algorithm::Kupyna256
+            | Algorithm::Gost34311 => 64,
+            Algorithm::Sha384 | Algorithm::Sha3_384
+            | Algorithm::Kupyna384 => 96,
+            Algorithm::Sha512 | Algorithm::Sha3_512 | Algorithm::Blake2b | Algorithm::Whirlpool
+            | Algorithm::Kupyna512 => 128,
         }
     }
 
@@ -189,6 +213,17 @@ impl Algorithm {
             "sha2512" => "sha512",
             "sha2512224" => "sha512224",
             "sha2512256" => "sha512256",
+            // Ukraine's standards, by the standard's number as well as by the
+            // function's name. DSTU 7564 on its own is its 256-bit form.
+            // The bare numbers are what is left of the names in their own
+            // alphabet — «ДСТУ 7564», «ДСТУ ГОСТ 34.311-95» — once only Latin
+            // letters and digits are kept.
+            "dstu7564" | "dstu75642014" | "kupyna" | "dstu7564256" | "7564" | "75642014" => "kupyna256",
+            "dstu7564384" => "kupyna384",
+            "dstu7564512" => "kupyna512",
+            "gost34311" | "dstugost34311" | "dstugost3431195" | "gost94ua" | "gost3411ua" | "3431195" | "34311" => {
+                "gost3431195"
+            }
             "blake2b512" | "blake2" => "blake2b",
             "blake2s256" => "blake2s",
             "crc" | "crc32b" => "crc32",
@@ -220,6 +255,11 @@ enum Running {
     Crc64(crc::Digest<'static, u64>),
     Xxh64(Box<xxhash_rust::xxh64::Xxh64>),
     Xxh3(Box<xxhash_rust::xxh3::Xxh3>),
+    // Kupyna comes from a newer generation of the hash interface than the
+    // rest, so it cannot be boxed along with them.
+    Kupyna256(Box<kupyna::Kupyna256>),
+    Kupyna384(Box<kupyna::Kupyna384>),
+    Kupyna512(Box<kupyna::Kupyna512>),
 }
 
 impl Running {
@@ -248,6 +288,13 @@ impl Running {
             Algorithm::Blake2b => Running::Hash(Box::new(Blake2b512::default())),
             Algorithm::Blake3 => Running::Blake3(Box::new(blake3::Hasher::new())),
             Algorithm::Whirlpool => Running::Hash(Box::new(Whirlpool::default())),
+            Algorithm::Kupyna256 => Running::Kupyna256(Box::default()),
+            Algorithm::Kupyna384 => Running::Kupyna384(Box::default()),
+            Algorithm::Kupyna512 => Running::Kupyna512(Box::default()),
+            // With the substitution table Ukraine's standard names — the one
+            // its signed documents were hashed with. The same function with
+            // another table gives another hash.
+            Algorithm::Gost34311 => Running::Hash(Box::new(Gost94UA::default())),
         }
     }
 
@@ -262,6 +309,9 @@ impl Running {
             Running::Crc64(h) => h.update(bytes),
             Running::Xxh64(h) => h.update(bytes),
             Running::Xxh3(h) => h.update(bytes),
+            Running::Kupyna256(h) => kupyna::Digest::update(h.as_mut(), bytes),
+            Running::Kupyna384(h) => kupyna::Digest::update(h.as_mut(), bytes),
+            Running::Kupyna512(h) => kupyna::Digest::update(h.as_mut(), bytes),
         }
     }
 
@@ -276,6 +326,9 @@ impl Running {
             Running::Crc64(h) => hex(&h.finalize().to_be_bytes()),
             Running::Xxh64(h) => hex(&h.digest().to_be_bytes()),
             Running::Xxh3(h) => hex(&h.digest().to_be_bytes()),
+            Running::Kupyna256(h) => hex(&kupyna::Digest::finalize(*h)),
+            Running::Kupyna384(h) => hex(&kupyna::Digest::finalize(*h)),
+            Running::Kupyna512(h) => hex(&kupyna::Digest::finalize(*h)),
         }
     }
 }

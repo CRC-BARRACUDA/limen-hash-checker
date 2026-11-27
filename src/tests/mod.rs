@@ -36,7 +36,7 @@ impl Drop for Scratch {
 /// against. From the standards and the algorithms' own published vectors, and
 /// checked against other implementations (Python's hashlib and zlib, OpenSSL)
 /// wherever one was to hand, rather than against the libraries used here.
-pub(crate) const ABC: [(Algorithm, &str); 22] = [
+pub(crate) const ABC: [(Algorithm, &str); 26] = [
     (Algorithm::Adler32, "024d0127"),
     (Algorithm::Crc32, "352441c2"),
     (Algorithm::Crc64, "2cd8094a1a277627"),
@@ -83,6 +83,20 @@ pub(crate) const ABC: [(Algorithm, &str); 22] = [
         "4e2448a4c6f486bb16b6562c73b4020bf3043e3a731bce721ae1b303d97e6d4c\
          7181eebdb6c57e277d0e34957114cbd6c797fc9d95d8b582d225292076d4eef5",
     ),
+    // Ukraine's: checked against the vectors their standards publish — see
+    // `the_ukrainian_hashes_are_the_ones_their_standards_define`.
+    (Algorithm::Kupyna256, "0bd1b36109f1318411a0517315aa46b8839df06622a278676f5487996c9cfc04"),
+    (
+        Algorithm::Kupyna384,
+        "72945012b0820c3132846ddc90da511f80bb7b70abd0cb1ab8df785d600c187b\
+         9d0ac567e8b6f76fde8a0b417a2ebf88",
+    ),
+    (
+        Algorithm::Kupyna512,
+        "9e5be7daf7b68b49d2ecbd04c7a5b3af72945012b0820c3132846ddc90da511f\
+         80bb7b70abd0cb1ab8df785d600c187b9d0ac567e8b6f76fde8a0b417a2ebf88",
+    ),
+    (Algorithm::Gost34311, "a34a53504d8ba070cb73a583146167a0a3c226d793440d9cea24465fe02251f2"),
 ];
 
 /// The hash of "abc" by one algorithm.

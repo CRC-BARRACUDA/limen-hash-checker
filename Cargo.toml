@@ -5,7 +5,7 @@
 name = "hash-checker"
 version = "0.1.0"
 edition = "2021"
-description = "Calculates the hashes of a file, a folder or a piece of text — MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3 and more — and checks them against a hash you were given."
+description = "Calculates the hashes of a file, a folder or a piece of text — MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3, Ukraine's Kupyna and more — and checks them against a hash you were given."
 repository = "https://github.com/CRC-BARRACUDA/limen-hash-checker"
 license = "GPL-3.0-or-later"
 
@@ -27,6 +27,10 @@ blake3 = { version = "1", default-features = false, features = ["std", "pure"] }
 crc32fast = "1"
 ripemd = "0.1"
 whirlpool = "0.10"
+# Ukraine's national hash functions: DSTU 7564:2014 (Kupyna) and the older
+# GOST 34.311-95 with the substitution table Ukraine uses.
+kupyna = "0.1"
+gost94 = "0.10"
 # CRC-64 by its catalogue name (CRC-64/XZ), so which of the several it is is
 # written down rather than left to a library's default.
 crc = "3"

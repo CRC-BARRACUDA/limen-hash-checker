@@ -118,7 +118,7 @@ fn verify_says_yes_no_and_against_what() {
     assert_eq!(v["algorithm"], Value::Null);
     assert_eq!(v["expected"], "0".repeat(64));
     assert_eq!(v["actual"]["sha256"], sha256_of_abc());
-    assert_eq!(v["actual"].as_object().unwrap().len(), 5, "five algorithms are that long");
+    assert_eq!(v["actual"].as_object().unwrap().len(), 7, "seven algorithms are that long");
 
     // Named, it is held against that one alone.
     let v = api::verify(&json!({ "expected": format!("sha256:{}", abc(Algorithm::Blake3)), "text": "abc" })).unwrap();
@@ -143,7 +143,7 @@ fn the_module_says_which_algorithms_it_has() {
     let names: Vec<&str> =
         listed["algorithms"].as_array().unwrap().iter().map(|a| a["name"].as_str().unwrap()).collect();
     assert_eq!(names, Algorithm::ALL.map(Algorithm::key));
-    assert_eq!(names.len(), 22);
+    assert_eq!(names.len(), 26);
     let sha3 = listed["algorithms"].as_array().unwrap().iter().find(|a| a["name"] == "sha3_256").unwrap();
     assert_eq!((sha3["label"].as_str(), sha3["hex_digits"].as_u64()), (Some("SHA3-256"), Some(64)));
 }
