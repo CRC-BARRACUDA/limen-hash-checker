@@ -1,0 +1,35 @@
+# Standalone package (it lives inside the Limen repo tree but is its own module).
+[workspace]
+
+[package]
+name = "hash-checker"
+version = "0.1.0"
+edition = "2021"
+description = "Calculates the hashes of a file, a folder or a piece of text — MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3 and more — and checks them against a hash you were given."
+repository = "https://github.com/CRC-BARRACUDA/limen-hash-checker"
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "hash_checker"
+crate-type = ["cdylib"]
+
+[dependencies]
+limen-sdk-rust = { git = "https://github.com/CRC-BARRACUDA/Limen.git" }
+md-5 = "0.10"
+sha1 = "0.10"
+sha2 = "0.10"
+sha3 = "0.10"
+blake2 = "0.10"
+# `pure`: no C and no assembly to build, so the module compiles the same way on
+# every platform it is packaged for. The Rust it leaves still uses the
+# processor's vector instructions.
+blake3 = { version = "1", default-features = false, features = ["std", "pure"] }
+crc32fast = "1"
+ripemd = "0.1"
+whirlpool = "0.10"
+# CRC-64 by its catalogue name (CRC-64/XZ), so which of the several it is is
+# written down rather than left to a library's default.
+crc = "3"
+adler2 = "2"
+xxhash-rust = { version = "0.8", features = ["xxh64", "xxh3"] }
+base64 = "0.22"

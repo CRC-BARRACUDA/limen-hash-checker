@@ -1,0 +1,29 @@
+[module]
+name = "hash-checker"
+display_name = "Hash Checker"
+description = "Calculates the hashes of a file, a folder or a piece of text — MD5, SHA-1, SHA-2, SHA-3, BLAKE2, BLAKE3 and more — and checks them against a hash you were given. Other modules can ask it for hashes too."
+version = "0.1.0"
+language = "native"
+entry = "hash_checker"
+abi = "native"
+authors = ["Limen"]
+repo = "CRC-BARRACUDA/limen-hash-checker"
+tags = ["limen", "barracuda", "security", "hash", "integrity", "forensics", "local"]
+
+[provides]
+capabilities = ["hash.calc"]
+
+[permissions]
+# Only what it is pointed at: the file or folder picked on its own screen, or
+# the path another module hands it to hash. Files are read from beginning to end
+# — every file under a folder, links not followed — and nothing is written,
+# changed or sent anywhere.
+filesystem = ["<user-selected>"]
+# Copying a hash: on Linux and macOS the clipboard is reached through the
+# desktop's own tool (wl-copy, xclip, xsel; pbcopy). Nothing else is spawned.
+subprocess = true
+
+# Deliberately NOT here:
+#
+#   network — a hash is calculated on this machine and stays on it. Nothing is
+#     looked up anywhere: what a hash *means* is another module's question.

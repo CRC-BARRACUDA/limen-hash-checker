@@ -1,0 +1,66 @@
+# English strings for the module's own screen.
+#
+# The default language: anything missing from another catalog falls back here,
+# and anything missing here renders as its own key — visible enough to notice.
+#
+# `[module]` is different: the *host* reads it for the card and the tab, and
+# English falls back to limen.toml — which is why it is in uk.toml and not here.
+
+[ui]
+title = "Hash Checker"
+subtitle = "The hashes of a file, a folder or a piece of text, calculated on this machine. Nothing is sent anywhere."
+kind = "What to hash"
+file = "File"
+folder = "Folder"
+browse = "Browse…"
+algorithm = "Algorithm"
+text = "Text"
+text_hint = "hashed exactly as typed, as UTF-8"
+expected = "Hash to compare with (optional)"
+expected_hint = "any of the hashes below, with or without its name in front"
+calculate = "Calculate"
+clear = "Clear"
+nothing = "There is nothing to hash yet: fill in the field first."
+
+# What can be hashed — the choices of the first dropdown.
+[kind]
+file = "File"
+folder = "Folder"
+text = "Text"
+
+[result]
+of_text = "The text"
+bytes = "{n} bytes"
+algorithm = "Algorithm"
+hash = "Hash"
+copy = "Copy"
+copy_hint = "Double-click a hash to copy it."
+matches = "Matches: the hash you gave is this one's {what}."
+differs = "Does not match: by its length the hash you gave could be {what}, and it is none of this one's."
+not_a_hash = "What you gave to compare with is not a hash this module calculates: in hex, they are 8, 16, 32, 40, 56, 64, 96 or 128 digits."
+
+# A folder: every file in it, and one hash for the whole.
+[folder]
+summary = "{n} file(s) · {size} · hashed with {what}"
+links = "{n} link(s) were not followed, and are not in the hash."
+special = "{n} item(s) are neither file nor folder (pipes, sockets, devices) and were not read."
+hash = "The folder's hash ({what} of its checksum list)"
+incomplete = "No hash for the folder as a whole: {n} item(s) in it could not be read, and a hash of part of a folder is not the folder's."
+copy_list = "Copy the checksum list"
+files = "Files ({n})"
+files_first = "Files — the first {shown} of {n}; all of them are in the checksum list"
+failed = "Could not be read ({n})"
+col_file = "File"
+col_size = "Size"
+col_why = "Why"
+is_folder = "Matches: the hash you gave is this folder's."
+is_files = "Found: the hash you gave is that of {n} file(s) in this folder."
+nothing = "Does not match: the hash you gave is not this folder's {what}, nor that of any file in it."
+other_kind = "Not compared: by its length the hash you gave could be {given}, and this folder was hashed with {what}. Choose that algorithm and calculate again."
+
+# Passing notices, said in the corner.
+[notice]
+list_copied = "The checksum list of {n} file(s) was copied to the clipboard."
+copied = "{what} copied to the clipboard."
+no_clipboard = "Nothing was copied: no clipboard tool is available."
+gone = "That hash is no longer on the screen — calculate again."
